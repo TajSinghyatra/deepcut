@@ -62,18 +62,18 @@ def _custom_dict(word, text, word_end):
             text = text[start_char + word_length:]
             word_end[first_char:last_char] = (word_length - 1) * [0]
             word_end[last_char] = 1
-        except:
+        except Exception:
             break
     return word_end
 
 
-def _document_frequency(X):
+def _document_frequency(x_):
     """
     Count the number of non-zero values for each feature in sparse X.
     """
-    if sp.isspmatrix_csr(X):
-        return np.bincount(X.indices, minlength=X.shape[1])
-    return np.diff(sp.csc_matrix(X, copy=False).indptr)
+    if sp.isspmatrix_csr(x_):
+        return np.bincount(x_.indices, minlength=x_.shape[1])
+    return np.diff(sp.csc_matrix(x_, copy=False).indptr)
 
 
 def _check_stop_list(stop):
@@ -193,27 +193,27 @@ class DeepcutTokenizer(object):
         return tokens
 
 
-    def _limit_features(self, X, vocabulary,
+    def _limit_features(self, x_, vocabulary,
                         high=None, low=None, limit=None):
         """Remove too rare or too common features.
 
-        ref: https://github.com/scikit-learn/scikit-learn/blob/ef5cb84a/sklearn/feature_extraction/text.py#L734-L773
+        ref: https://github.com/scikit-learn/scikit-learn/blob/ef5cb84a/sklearn/feature_ex_traction/text.py#L734-L773
         """
         if high is None and low is None and limit is None:
-            return X, set()
+            return x_, set()
 
         # Calculate a mask based on document frequencies
-        dfs = _document_frequency(X)
+        dfs = _document_frequency(x_)
         mask = np.ones(len(dfs), dtype=bool)
         if high is not None:
             mask &= dfs <= high
         if low is not None:
             mask &= dfs >= low
         if limit is not None and mask.sum() > limit:
-            tfs = np.asarray(X.sum(axis=0)).ravel()
-            mask_inds = (-tfs[mask]).argsort()[:limit]
+            tfs = np.asarray(x_.sum(axis=0)).ravel()
+            mask_inds = np.nonzero(mask)[0][(-tfs[mask]).argsort()[:limit]]
             new_mask = np.zeros(len(dfs), dtype=bool)
-            new_mask[np.where(mask)[0][mask_inds]] = True
+            new_mask[mask_inds] = True
             mask = new_mask
 
         new_indices = np.cumsum(mask) - 1  # maps old indices to new
@@ -224,11 +224,11 @@ class DeepcutTokenizer(object):
             else:
                 del vocabulary[term]
                 removed_terms.add(term)
-        kept_indices = np.where(mask)[0]
+        kept_indices = np.nonzero(mask)[0]
         if len(kept_indices) == 0:
             raise ValueError("After pruning, no terms remain. Try a lower"
                              " min_df or a higher max_df.")
-        return X[:, kept_indices], removed_terms
+        return x_[:, kept_indices], removed_terms
 
 
     def transform(self, raw_documents, new_document=False):
@@ -323,7 +323,7 @@ class DeepcutTokenizer(object):
                 try:
                     with open(custom_dict) as f:
                         word_list = f.readlines()
-                except:
+                except FileNotFoundError:
                     pass
             if len(word_list) > 0:
                 for word in word_list:

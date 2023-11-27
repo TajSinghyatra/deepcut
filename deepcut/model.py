@@ -7,6 +7,7 @@ from tensorflow.keras.layers import Input, Dense, Embedding, \
 from tensorflow.keras.layers import TimeDistributed
 from tensorflow.keras.optimizers import Adam
 
+
 def conv_unit(inp, n_gram, no_word=200, window=2):
     out = Conv1D(no_word, window, strides=1, padding="valid", activation='relu')(inp)
     out = TimeDistributed(Dense(5, input_shape=(n_gram, no_word)))(out)
